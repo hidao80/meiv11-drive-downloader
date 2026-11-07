@@ -1,0 +1,47 @@
+# misskey-drive-downloader
+
+> A single-file Python CLI that downloads every file in a Misskey drive, keeping the folder structure. It targets meiV11 (a fork of Misskey v11, https://github.com/mei23/misskey-v11); newer versions of upstream Misskey are not supported.
+
+misskey-drive-downloader walks the drive from the root via the Misskey API (`drive/folders` and `drive/files`, paginated with `untilId`) and recreates each folder as a local directory. It uses only the Python standard library (Python 3.8 or later). Files are written as `<name>.part` and renamed when complete; files that already exist are skipped, so an interrupted run can be restarted. API calls are retried with exponential backoff on HTTP 429 and 5xx; downloads are also retried on network errors but fail immediately on other 4xx errors. File names are made Windows-safe (invalid characters become `_`, reserved names such as `CON` get a `_` prefix), and names that collide in the same folder (case-insensitively) get the file ID appended. A failed file does not stop the run; the exit code is `1` if any file failed or the token is missing or rejected, otherwise `0`.
+
+## Usage
+
+Requires an access token with the `read:drive` permission, passed in the `MISSKEY_TOKEN` environment variable.
+
+```
+export MISSKEY_TOKEN=your-access-token
+uv run misskey_drive_download.py [--host HOST] [-o DIR] [--dry-run]
+```
+
+Options:
+- `--host HOST`: host name of the Misskey instance (default `misskey.dev`, or the `MISSKEY_HOST` environment variable)
+- `-o`, `--output DIR`: output directory (default `./misskey-drive`)
+- `--dry-run`: print the files that would be downloaded, without downloading
+
+Only files are downloaded; metadata such as comments and sensitive flags is not saved. A local file is never re-downloaded, even if it has changed on the server.
+
+## Install
+
+```
+git clone https://github.com/hidao80/meiv11-drive-downloader.git
+cd meiv11-drive-downloader
+uv sync
+```
+
+Without uv, no installation is needed: run `python misskey_drive_download.py`.
+
+## Docs
+
+- [Landing page](https://hidao80.github.io/meiv11-drive-downloader/): overview, quick start, options (7 languages)
+- [README](https://github.com/hidao80/meiv11-drive-downloader/blob/main/docs/README.md): full usage reference, behavior details, exit codes
+
+## Source
+
+- [misskey_drive_download.py](https://github.com/hidao80/meiv11-drive-downloader/blob/main/misskey_drive_download.py): the whole tool. `MisskeyClient` (API calls, retries, pagination), `safe_name` / `unique_names` (file name conversion), `download` (resumable download via `.part`), `walk` (recursive traversal), `main` (CLI)
+- [tests/test_misskey_drive_download.py](https://github.com/hidao80/meiv11-drive-downloader/blob/main/tests/test_misskey_drive_download.py): pytest suite; no network access (urlopen and sleep are stubbed)
+- [pyproject.toml](https://github.com/hidao80/meiv11-drive-downloader/blob/main/pyproject.toml): project metadata, dev dependencies (pytest, Ruff), pytest and Ruff settings
+- [.github/workflows/](https://github.com/hidao80/meiv11-drive-downloader/tree/main/.github/workflows): CI on `ubuntu-slim` — test (Python 3.8 and 3.14), lint (Ruff), audit (`uv audit --no-dev`, also weekly)
+
+## Optional
+
+- [meiV11](https://github.com/mei23/misskey-v11): the Misskey v11 fork this tool targets

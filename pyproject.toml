@@ -1,0 +1,19 @@
+[project]
+name = "misskey-drive-downloader"
+version = "1.0.0"
+description = "Misskey ドライブの全ファイルをフォルダ構造を保ったままダウンロードする"
+requires-python = ">=3.8"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.17.4",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 120

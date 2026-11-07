@@ -1,0 +1,26 @@
+name: audit
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # 新たに公開された脆弱性を検知するため毎週実行 (月曜 09:00 JST)
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      # 実行時依存のみ対象。dev 依存 (pytest 8.x, Python 3.8/3.9 向け) の既知脆弱性は Dependabot で追跡する
+      - run: uv audit --locked --no-dev --preview-features audit-command

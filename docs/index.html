@@ -1,0 +1,756 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>misskey-drive-downloader — Back up your meiV11 drive</title>
+  <meta name="description" content="Download every file in your Misskey (meiV11) drive, keeping the folder structure. Python standard library only, resumable, with automatic retries.">
+  <link rel="canonical" href="https://hidao80.github.io/meiv11-drive-downloader/">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+
+  <!-- OGP -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="misskey-drive-downloader">
+  <meta property="og:title" content="misskey-drive-downloader">
+  <meta property="og:description" content="Download every file in your Misskey (meiV11) drive, keeping the folder structure.">
+  <meta property="og:url" content="https://hidao80.github.io/meiv11-drive-downloader/">
+  <meta property="og:image" content="https://hidao80.github.io/meiv11-drive-downloader/social-preview.png">
+  <meta property="og:image:width" content="1280">
+  <meta property="og:image:height" content="640">
+  <meta property="og:image:alt" content="misskey-drive-downloader: Download every file in your Misskey drive, keeping the folder structure.">
+  <meta property="og:locale" content="en_US">
+
+  <!-- X (Twitter) -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="misskey-drive-downloader">
+  <meta name="twitter:description" content="Download every file in your Misskey (meiV11) drive, keeping the folder structure.">
+  <meta name="twitter:image" content="https://hidao80.github.io/meiv11-drive-downloader/social-preview.png">
+  <meta name="twitter:image:alt" content="misskey-drive-downloader: Download every file in your Misskey drive, keeping the folder structure.">
+
+  <!-- JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "misskey-drive-downloader",
+    "description": "Download every file in your Misskey (meiV11) drive, keeping the folder structure.",
+    "url": "https://hidao80.github.io/meiv11-drive-downloader/",
+    "image": "https://hidao80.github.io/meiv11-drive-downloader/social-preview.png",
+    "applicationCategory": "UtilitiesApplication",
+    "operatingSystem": "Windows, macOS, Linux",
+    "softwareRequirements": "Python 3.8 or later",
+    "softwareVersion": "1.0.0",
+    "inLanguage": ["en", "ja", "zh-CN", "zh-TW", "es", "ru", "de"],
+    "sameAs": "https://github.com/hidao80/meiv11-drive-downloader",
+    "downloadUrl": "https://github.com/hidao80/meiv11-drive-downloader",
+    "author": {
+      "@type": "Person",
+      "name": "hidao80",
+      "url": "https://github.com/hidao80"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    }
+  }
+  </script>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2.1.1/css/pico.min.css">
+  <style>
+    .hero { text-align: center; padding-block: 3rem 1rem; }
+    .hero img { width: 96px; height: 96px; }
+    .hero h1 { margin-block: 1rem 0.5rem; font-size: clamp(1.6rem, 6vw, 2.5rem); overflow-wrap: anywhere; }
+    .hero .lead { font-size: 1.25rem; color: var(--pico-muted-color); }
+    .hero .actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.875rem;
+             border: 1px solid var(--pico-primary-border); color: var(--pico-primary); }
+    .features .grid { margin-bottom: var(--pico-grid-row-gap); }
+    .features article { margin-bottom: 0; height: 100%; }
+    .features h3 { font-size: 1.1rem; }
+    .theme-toggle { margin: 0; padding: 0.4rem 0.75rem; }
+    .lang-select { width: auto; margin: 0; padding: 0.4rem 2rem 0.4rem 0.75rem; }
+    footer { text-align: center; color: var(--pico-muted-color); }
+    #options td code { white-space: nowrap; }
+    @media (max-width: 575px) {
+      .nav-section, .nav-brand { display: none; }
+    }
+
+    /* 利用技術: 分類ごとの色はアクセント (点・枠) のみに使い、文字は本文色で高コントラストを保つ */
+    :root {
+      --tech-runtime: #2563eb; --tech-dev: #15803d; --tech-ci: #7e22ce; --tech-web: #c2410c;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --tech-runtime: #60a5fa; --tech-dev: #4ade80; --tech-ci: #c084fc; --tech-web: #fb923c;
+      }
+    }
+    :root[data-theme="dark"] {
+      --tech-runtime: #60a5fa; --tech-dev: #4ade80; --tech-ci: #c084fc; --tech-web: #fb923c;
+    }
+    .tech-groups { display: grid; gap: 1.25rem 2rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 24rem), 1fr)); }
+    .tech-group h3 { display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; margin-bottom: 0.75rem; }
+    .tech-group h3::before { content: ""; width: 0.75rem; height: 0.75rem; border-radius: 50%; background: var(--accent); }
+    .tech-list { display: flex; flex-wrap: wrap; gap: 0.5rem; list-style: none; margin: 0; padding: 0; }
+    .tech-list li { list-style: none; margin: 0; }
+    .tech-list a {
+      display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0.4rem 1.1rem;
+      border-radius: 999px; border: 1.5px solid var(--accent); white-space: nowrap;
+      font-size: 0.95rem; font-weight: 600; line-height: 1.3; text-decoration: none;
+      color: var(--pico-color); background: color-mix(in srgb, var(--accent) 12%, var(--pico-background-color));
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .tech-list a:hover { background: var(--accent); color: var(--pico-background-color); }
+    .tech-list a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    .tech-runtime { --accent: var(--tech-runtime); }
+    .tech-dev { --accent: var(--tech-dev); }
+    .tech-ci { --accent: var(--tech-ci); }
+    .tech-web { --accent: var(--tech-web); }
+    @media (max-width: 575px) {
+      .tech-list a { min-height: 2.25rem; padding: 0.3rem 0.85rem; font-size: 0.875rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tech-list a { transition: none; }
+    }
+  </style>
+  <script>
+    // 保存済みのテーマを描画前に適用する (未保存なら OS の設定に従う)
+    try {
+      const saved = localStorage.getItem("theme");
+      if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved;
+    } catch (_) {}
+  </script>
+</head>
+<body>
+  <header class="container">
+    <nav>
+      <ul>
+        <li class="nav-brand"><strong>misskey-drive-downloader</strong></li>
+      </ul>
+      <ul>
+        <li class="nav-section"><a href="#features">
+          <template type="language-group">
+            <span language="en">Features</span>
+            <span language="ja">機能</span>
+            <span language="zh-CN">功能</span>
+            <span language="zh-TW">功能</span>
+            <span language="es">Características</span>
+            <span language="ru">Возможности</span>
+            <span language="de">Funktionen</span>
+          </template>
+        </a></li>
+        <li class="nav-section"><a href="#quick-start">
+          <template type="language-group">
+            <span language="en">Quick start</span>
+            <span language="ja">クイックスタート</span>
+            <span language="zh-CN">快速开始</span>
+            <span language="zh-TW">快速開始</span>
+            <span language="es">Inicio rápido</span>
+            <span language="ru">Быстрый старт</span>
+            <span language="de">Schnellstart</span>
+          </template>
+        </a></li>
+        <li><a href="https://github.com/hidao80/meiv11-drive-downloader">GitHub</a></li>
+        <li>
+          <select class="lang-select" id="lang-select" aria-label="Language">
+            <option value="en">English</option>
+            <option value="ja">日本語</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁體中文</option>
+            <option value="es">Español</option>
+            <option value="ru">Русский</option>
+            <option value="de">Deutsch</option>
+          </select>
+        </li>
+        <li><button class="theme-toggle outline secondary" id="theme-toggle" type="button" aria-label="Toggle color theme">🌓</button></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <img src="favicon.svg" alt="" width="96" height="96">
+      <h1>misskey-drive-downloader</h1>
+      <p class="lead">
+        <template type="language-group">
+          <span language="en">Download every file in your Misskey drive, keeping the folder structure.</span>
+          <span language="ja">Misskey のドライブにある全ファイルを、フォルダー構造を保ったままダウンロードします。</span>
+          <span language="zh-CN">保持文件夹结构，下载 Misskey 网盘中的全部文件。</span>
+          <span language="zh-TW">保留資料夾結構，下載 Misskey 雲端硬碟中的所有檔案。</span>
+          <span language="es">Descarga todos los archivos de tu Drive de Misskey conservando la estructura de carpetas.</span>
+          <span language="ru">Скачивает все файлы с вашего Диска Misskey с сохранением структуры папок.</span>
+          <span language="de">Lädt alle Dateien aus deinem Misskey-Drive herunter und behält dabei die Ordnerstruktur bei.</span>
+        </template>
+      </p>
+      <p><span class="badge">
+        <template type="language-group">
+          <span language="en">For meiV11 (Misskey v11 fork) — newer upstream Misskey is not supported</span>
+          <span language="ja">meiV11（Misskey v11 系フォーク）向け — 本流の新しい Misskey には非対応</span>
+          <span language="zh-CN">适用于 meiV11（Misskey v11 分支）— 不支持新版官方 Misskey</span>
+          <span language="zh-TW">適用於 meiV11（Misskey v11 分支）— 不支援新版官方 Misskey</span>
+          <span language="es">Para meiV11 (fork de Misskey v11) — no es compatible con versiones recientes de Misskey oficial</span>
+          <span language="ru">Для meiV11 (форк Misskey v11) — новые версии основного Misskey не поддерживаются</span>
+          <span language="de">Für meiV11 (Fork von Misskey v11) — neuere Versionen des offiziellen Misskey werden nicht unterstützt</span>
+        </template>
+      </span></p>
+      <p class="actions">
+        <!-- biome-ignore lint/a11y/useSemanticElements: Pico CSS のボタン表示のためリンクに role="button" を付与 -->
+        <a href="#quick-start" role="button">
+          <template type="language-group">
+            <span language="en">Get started</span>
+            <span language="ja">はじめる</span>
+            <span language="zh-CN">开始使用</span>
+            <span language="zh-TW">開始使用</span>
+            <span language="es">Empezar</span>
+            <span language="ru">Начать</span>
+            <span language="de">Loslegen</span>
+          </template>
+        </a>
+        <!-- biome-ignore lint/a11y/useSemanticElements: 同上 -->
+        <a href="https://github.com/hidao80/meiv11-drive-downloader" role="button" class="secondary outline">
+          <template type="language-group">
+            <span language="en">View on GitHub</span>
+            <span language="ja">GitHub で見る</span>
+            <span language="zh-CN">在 GitHub 上查看</span>
+            <span language="zh-TW">在 GitHub 上查看</span>
+            <span language="es">Ver en GitHub</span>
+            <span language="ru">Открыть на GitHub</span>
+            <span language="de">Auf GitHub ansehen</span>
+          </template>
+        </a>
+      </p>
+    </section>
+
+    <section id="features" class="features">
+      <h2>
+        <template type="language-group">
+          <span language="en">Features</span>
+          <span language="ja">機能</span>
+          <span language="zh-CN">功能</span>
+          <span language="zh-TW">功能</span>
+          <span language="es">Características</span>
+          <span language="ru">Возможности</span>
+          <span language="de">Funktionen</span>
+        </template>
+      </h2>
+      <div class="grid">
+        <article>
+          <h3>📁
+            <template type="language-group">
+              <span language="en">Keeps your folders</span>
+              <span language="ja">フォルダー構造を維持</span>
+              <span language="zh-CN">保留文件夹</span>
+              <span language="zh-TW">保留資料夾</span>
+              <span language="es">Conserva tus carpetas</span>
+              <span language="ru">Сохраняет папки</span>
+              <span language="de">Behält deine Ordner</span>
+            </template>
+          </h3>
+          <p>
+            <template type="language-group">
+              <span language="en">Folders in your drive are recreated as directories on your computer.</span>
+              <span language="ja">ドライブ内のフォルダーを、そのままパソコン上のフォルダーとして再現します。</span>
+              <span language="zh-CN">网盘中的文件夹会在你的电脑上按原样重建。</span>
+              <span language="zh-TW">雲端硬碟中的資料夾會在你的電腦上依原樣重建。</span>
+              <span language="es">Las carpetas de tu Drive se recrean como directorios en tu equipo.</span>
+              <span language="ru">Папки на Диске воссоздаются как каталоги на вашем компьютере.</span>
+              <span language="de">Die Ordner in deinem Drive werden als Verzeichnisse auf deinem Computer nachgebildet.</span>
+            </template>
+          </p>
+        </article>
+        <article>
+          <h3>⏯️
+            <template type="language-group">
+              <span language="en">Resumable</span>
+              <span language="ja">中断しても再開可能</span>
+              <span language="zh-CN">支持断点续传</span>
+              <span language="zh-TW">支援中斷續傳</span>
+              <span language="es">Reanudable</span>
+              <span language="ru">Возобновляемая загрузка</span>
+              <span language="de">Fortsetzbar</span>
+            </template>
+          </h3>
+          <p>
+            <template type="language-group">
+              <span language="en">Files that are already saved are skipped, so an interrupted run can simply be restarted.</span>
+              <span language="ja">保存済みのファイルはスキップするので、中断しても実行し直すだけで続きから再開できます。</span>
+              <span language="zh-CN">已保存的文件会被跳过，中断后只需重新运行即可继续。</span>
+              <span language="zh-TW">已儲存的檔案會被略過，中斷後只要重新執行即可繼續。</span>
+              <span language="es">Los archivos ya guardados se omiten, así que basta con volver a ejecutarlo si se interrumpe.</span>
+              <span language="ru">Уже сохранённые файлы пропускаются, поэтому прерванный запуск можно просто повторить.</span>
+              <span language="de">Bereits gespeicherte Dateien werden übersprungen, ein abgebrochener Lauf lässt sich einfach neu starten.</span>
+            </template>
+          </p>
+        </article>
+        <article>
+          <h3>🔁
+            <template type="language-group">
+              <span language="en">Automatic retries</span>
+              <span language="ja">自動リトライ</span>
+              <span language="zh-CN">自动重试</span>
+              <span language="zh-TW">自動重試</span>
+              <span language="es">Reintentos automáticos</span>
+              <span language="ru">Автоматические повторы</span>
+              <span language="de">Automatische Wiederholung</span>
+            </template>
+          </h3>
+          <p>
+            <template type="language-group">
+              <span language="en">Rate limits (HTTP 429), server errors, and network failures are retried with backoff.</span>
+              <span language="ja">レート制限（HTTP 429）、サーバーエラー、通信エラーは、間隔を空けて自動的に再試行します。</span>
+              <span language="zh-CN">遇到速率限制（HTTP 429）、服务器错误或网络故障时，会逐步延长间隔自动重试。</span>
+              <span language="zh-TW">遇到速率限制（HTTP 429）、伺服器錯誤或網路故障時，會逐步拉長間隔自動重試。</span>
+              <span language="es">Los límites de frecuencia (HTTP 429), los errores del servidor y los fallos de red se reintentan con espera progresiva.</span>
+              <span language="ru">При ограничении частоты (HTTP 429), ошибках сервера и сбоях сети запросы повторяются с нарастающей задержкой.</span>
+              <span language="de">Bei Ratenbegrenzung (HTTP 429), Serverfehlern und Netzwerkfehlern wird mit zunehmender Wartezeit erneut versucht.</span>
+            </template>
+          </p>
+        </article>
+      </div>
+      <div class="grid">
+        <article>
+          <h3>🪟
+            <template type="language-group">
+              <span language="en">Windows-safe names</span>
+              <span language="ja">Windows でも安全なファイル名</span>
+              <span language="zh-CN">兼容 Windows 的文件名</span>
+              <span language="zh-TW">相容 Windows 的檔名</span>
+              <span language="es">Nombres seguros para Windows</span>
+              <span language="ru">Имена, безопасные для Windows</span>
+              <span language="de">Windows-kompatible Namen</span>
+            </template>
+          </h3>
+          <p>
+            <template type="language-group">
+              <span language="en">Invalid characters and reserved names are converted. Duplicate names get the file ID appended.</span>
+              <span language="ja">使えない文字や予約名を変換し、重複する名前にはファイル ID を付けます。</span>
+              <span language="zh-CN">自动转换非法字符和保留名称，重名文件会附加文件 ID。</span>
+              <span language="zh-TW">自動轉換無效字元與保留名稱，重複的名稱會附加檔案 ID。</span>
+              <span language="es">Se convierten los caracteres no válidos y los nombres reservados. A los nombres duplicados se les añade el ID del archivo.</span>
+              <span language="ru">Недопустимые символы и зарезервированные имена заменяются. К повторяющимся именам добавляется ID файла.</span>
+              <span language="de">Ungültige Zeichen und reservierte Namen werden umgewandelt. Doppelte Namen erhalten die Datei-ID als Zusatz.</span>
+            </template>
+          </p>
+        </article>
+        <article>
+          <h3>🐍
+            <template type="language-group">
+              <span language="en">No dependencies</span>
+              <span language="ja">依存パッケージなし</span>
+              <span language="zh-CN">无依赖</span>
+              <span language="zh-TW">無相依套件</span>
+              <span language="es">Sin dependencias</span>
+              <span language="ru">Без зависимостей</span>
+              <span language="de">Keine Abhängigkeiten</span>
+            </template>
+          </h3>
+          <p>
+            <template type="language-group">
+              <span language="en">Uses only the Python standard library. Runs on Python 3.8 or later, with or without uv.</span>
+              <span language="ja">Python 標準ライブラリーのみを使用。Python 3.8 以降で、uv があってもなくても動きます。</span>
+              <span language="zh-CN">仅使用 Python 标准库。支持 Python 3.8 及以上版本，有无 uv 均可运行。</span>
+              <span language="zh-TW">僅使用 Python 標準函式庫。支援 Python 3.8 以上版本，有無 uv 皆可執行。</span>
+              <span language="es">Solo usa la biblioteca estándar de Python. Funciona con Python 3.8 o posterior, con o sin uv.</span>
+              <span language="ru">Использует только стандартную библиотеку Python. Работает на Python 3.8 и новее, с uv или без него.</span>
+              <span language="de">Nutzt nur die Python-Standardbibliothek. Läuft ab Python 3.8, mit oder ohne uv.</span>
+            </template>
+          </p>
+        </article>
+        <article>
+          <h3>🔍
+            <template type="language-group">
+              <span language="en">Dry run</span>
+              <span language="ja">ドライラン</span>
+              <span language="zh-CN">试运行</span>
+              <span language="zh-TW">試執行</span>
+              <span language="es">Simulación</span>
+              <span language="ru">Пробный запуск</span>
+              <span language="de">Probelauf</span>
+            </template>
+          </h3>
+          <p>
+            <template type="language-group">
+              <span language="en">List everything that would be downloaded before saving a single file.</span>
+              <span language="ja">実際に保存する前に、ダウンロード対象の一覧を確認できます。</span>
+              <span language="zh-CN">在保存任何文件之前，先列出将要下载的全部内容。</span>
+              <span language="zh-TW">在儲存任何檔案之前，先列出將要下載的所有內容。</span>
+              <span language="es">Muestra todo lo que se descargaría antes de guardar un solo archivo.</span>
+              <span language="ru">Показывает всё, что будет скачано, ещё до сохранения первого файла.</span>
+              <span language="de">Listet alles auf, was heruntergeladen würde, bevor auch nur eine Datei gespeichert wird.</span>
+            </template>
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <section id="quick-start">
+      <h2>
+        <template type="language-group">
+          <span language="en">Quick start</span>
+          <span language="ja">クイックスタート</span>
+          <span language="zh-CN">快速开始</span>
+          <span language="zh-TW">快速開始</span>
+          <span language="es">Inicio rápido</span>
+          <span language="ru">Быстрый старт</span>
+          <span language="de">Schnellstart</span>
+        </template>
+      </h2>
+
+      <h3>1.
+        <template type="language-group">
+          <span language="en">Get an access token</span>
+          <span language="ja">アクセストークンを取得</span>
+          <span language="zh-CN">获取访问令牌</span>
+          <span language="zh-TW">取得存取權杖</span>
+          <span language="es">Obtén un token de acceso</span>
+          <span language="ru">Получите токен доступа</span>
+          <span language="de">Zugriffstoken erstellen</span>
+        </template>
+      </h3>
+      <p>
+        <template type="language-group">
+          <span language="en">On your Misskey instance, open <strong>Settings → API</strong> and generate an access token with only the <strong>View your Drive</strong> (<code>read:drive</code>) permission. Treat the token like a password.</span>
+          <span language="ja">Misskey インスタンスで <strong>設定 → API</strong> を開き、<strong>ドライブを見る</strong>（<code>read:drive</code>）権限だけを付けたアクセストークンを発行します。トークンはパスワードと同じように扱ってください。</span>
+          <span language="zh-CN">在你的 Misskey 实例中打开<strong>设置 → API</strong>，生成一个仅授予<strong>查看网盘</strong>（<code>read:drive</code>）权限的访问令牌。请像对待密码一样妥善保管令牌。</span>
+          <span language="zh-TW">在你的 Misskey 實例中開啟<strong>設定 → API</strong>，產生一個僅授予<strong>檢視雲端硬碟</strong>（<code>read:drive</code>）權限的存取權杖。請像對待密碼一樣妥善保管權杖。</span>
+          <span language="es">En tu instancia de Misskey, abre <strong>Configuración → API</strong> y genera un token de acceso solo con el permiso <strong>Ver tu Drive</strong> (<code>read:drive</code>). Trata el token como una contraseña.</span>
+          <span language="ru">На своём сервере Misskey откройте <strong>Настройки → API</strong> и создайте токен доступа только с разрешением <strong>Просмотр Диска</strong> (<code>read:drive</code>). Обращайтесь с токеном как с паролем.</span>
+          <span language="de">Öffne auf deiner Misskey-Instanz <strong>Einstellungen → API</strong> und erstelle ein Zugriffstoken nur mit der Berechtigung <strong>Drive ansehen</strong> (<code>read:drive</code>). Behandle das Token wie ein Passwort.</span>
+        </template>
+      </p>
+
+      <h3>2.
+        <template type="language-group">
+          <span language="en">Install</span>
+          <span language="ja">インストール</span>
+          <span language="zh-CN">安装</span>
+          <span language="zh-TW">安裝</span>
+          <span language="es">Instalación</span>
+          <span language="ru">Установка</span>
+          <span language="de">Installation</span>
+        </template>
+      </h3>
+      <pre><code>git clone https://github.com/hidao80/meiv11-drive-downloader.git
+cd meiv11-drive-downloader
+uv sync</code></pre>
+      <p><small>
+        <template type="language-group">
+          <span language="en">Without <a href="https://docs.astral.sh/uv/">uv</a>, no installation is needed — run the script with <code>python</code>.</span>
+          <span language="ja"><a href="https://docs.astral.sh/uv/">uv</a> を使わない場合はインストール不要です。<code>python</code> でスクリプトを直接実行してください。</span>
+          <span language="zh-CN">不使用 <a href="https://docs.astral.sh/uv/">uv</a> 时无需安装，直接用 <code>python</code> 运行脚本即可。</span>
+          <span language="zh-TW">不使用 <a href="https://docs.astral.sh/uv/">uv</a> 時無需安裝，直接以 <code>python</code> 執行腳本即可。</span>
+          <span language="es">Sin <a href="https://docs.astral.sh/uv/">uv</a> no hace falta instalar nada: ejecuta el script directamente con <code>python</code>.</span>
+          <span language="ru">Без <a href="https://docs.astral.sh/uv/">uv</a> установка не нужна — просто запустите скрипт через <code>python</code>.</span>
+          <span language="de">Ohne <a href="https://docs.astral.sh/uv/">uv</a> ist keine Installation nötig — führe das Skript direkt mit <code>python</code> aus.</span>
+        </template>
+      </small></p>
+
+      <h3>3.
+        <template type="language-group">
+          <span language="en">Run</span>
+          <span language="ja">実行</span>
+          <span language="zh-CN">运行</span>
+          <span language="zh-TW">執行</span>
+          <span language="es">Ejecución</span>
+          <span language="ru">Запуск</span>
+          <span language="de">Ausführen</span>
+        </template>
+      </h3>
+      <div class="grid">
+        <div>
+          <p><small>bash / zsh</small></p>
+          <pre><code>export MISSKEY_TOKEN=your-access-token
+uv run misskey_drive_download.py</code></pre>
+        </div>
+        <div>
+          <p><small>PowerShell</small></p>
+          <pre><code>$env:MISSKEY_TOKEN = "your-access-token"
+uv run misskey_drive_download.py</code></pre>
+        </div>
+      </div>
+      <p>
+        <template type="language-group">
+          <span language="en">Files are saved to <code>./misskey-drive</code> by default.</span>
+          <span language="ja">既定では <code>./misskey-drive</code> に保存されます。</span>
+          <span language="zh-CN">默认保存到 <code>./misskey-drive</code>。</span>
+          <span language="zh-TW">預設儲存至 <code>./misskey-drive</code>。</span>
+          <span language="es">Por defecto, los archivos se guardan en <code>./misskey-drive</code>.</span>
+          <span language="ru">По умолчанию файлы сохраняются в <code>./misskey-drive</code>.</span>
+          <span language="de">Standardmäßig werden die Dateien in <code>./misskey-drive</code> gespeichert.</span>
+        </template>
+      </p>
+    </section>
+
+    <section id="options">
+      <h2>
+        <template type="language-group">
+          <span language="en">Options</span>
+          <span language="ja">オプション</span>
+          <span language="zh-CN">选项</span>
+          <span language="zh-TW">選項</span>
+          <span language="es">Opciones</span>
+          <span language="ru">Параметры</span>
+          <span language="de">Optionen</span>
+        </template>
+      </h2>
+      <div class="overflow-auto">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">
+                <template type="language-group">
+                  <span language="en">Option</span>
+                  <span language="ja">オプション</span>
+                  <span language="zh-CN">选项</span>
+                  <span language="zh-TW">選項</span>
+                  <span language="es">Opción</span>
+                  <span language="ru">Параметр</span>
+                  <span language="de">Option</span>
+                </template>
+              </th>
+              <th scope="col">
+                <template type="language-group">
+                  <span language="en">Description</span>
+                  <span language="ja">説明</span>
+                  <span language="zh-CN">说明</span>
+                  <span language="zh-TW">說明</span>
+                  <span language="es">Descripción</span>
+                  <span language="ru">Описание</span>
+                  <span language="de">Beschreibung</span>
+                </template>
+              </th>
+              <th scope="col">
+                <template type="language-group">
+                  <span language="en">Default</span>
+                  <span language="ja">既定値</span>
+                  <span language="zh-CN">默认值</span>
+                  <span language="zh-TW">預設值</span>
+                  <span language="es">Predeterminado</span>
+                  <span language="ru">По умолчанию</span>
+                  <span language="de">Standard</span>
+                </template>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>--host HOST</code></td>
+              <td>
+                <template type="language-group">
+                  <span language="en">Host name of the Misskey instance (or <code>MISSKEY_HOST</code>)</span>
+                  <span language="ja">Misskey インスタンスのホスト名（環境変数 <code>MISSKEY_HOST</code> でも指定可）</span>
+                  <span language="zh-CN">Misskey 实例的主机名（也可用 <code>MISSKEY_HOST</code> 指定）</span>
+                  <span language="zh-TW">Misskey 實例的主機名稱（也可用 <code>MISSKEY_HOST</code> 指定）</span>
+                  <span language="es">Nombre de host de la instancia de Misskey (o <code>MISSKEY_HOST</code>)</span>
+                  <span language="ru">Имя хоста сервера Misskey (или <code>MISSKEY_HOST</code>)</span>
+                  <span language="de">Hostname der Misskey-Instanz (oder <code>MISSKEY_HOST</code>)</span>
+                </template>
+              </td>
+              <td><code>misskey.dev</code></td>
+            </tr>
+            <tr>
+              <td><code>-o</code>, <code>--output DIR</code></td>
+              <td>
+                <template type="language-group">
+                  <span language="en">Output directory</span>
+                  <span language="ja">保存先ディレクトリー</span>
+                  <span language="zh-CN">保存目录</span>
+                  <span language="zh-TW">儲存目錄</span>
+                  <span language="es">Directorio de salida</span>
+                  <span language="ru">Каталог для сохранения</span>
+                  <span language="de">Ausgabeverzeichnis</span>
+                </template>
+              </td>
+              <td><code>./misskey-drive</code></td>
+            </tr>
+            <tr>
+              <td><code>--dry-run</code></td>
+              <td>
+                <template type="language-group">
+                  <span language="en">Print the files that would be downloaded, without downloading</span>
+                  <span language="ja">ダウンロードせず、対象ファイルの一覧だけを表示</span>
+                  <span language="zh-CN">仅列出将要下载的文件，不实际下载</span>
+                  <span language="zh-TW">僅列出將要下載的檔案，不實際下載</span>
+                  <span language="es">Muestra los archivos que se descargarían, sin descargarlos</span>
+                  <span language="ru">Показать файлы для скачивания, ничего не скачивая</span>
+                  <span language="de">Zeigt die Dateien an, die heruntergeladen würden, ohne sie herunterzuladen</span>
+                </template>
+              </td>
+              <td>
+                <template type="language-group">
+                  <span language="en">off</span>
+                  <span language="ja">オフ</span>
+                  <span language="zh-CN">关闭</span>
+                  <span language="zh-TW">關閉</span>
+                  <span language="es">desactivado</span>
+                  <span language="ru">выкл.</span>
+                  <span language="de">aus</span>
+                </template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="notes">
+      <h2>
+        <template type="language-group">
+          <span language="en">Notes</span>
+          <span language="ja">注意事項</span>
+          <span language="zh-CN">注意事项</span>
+          <span language="zh-TW">注意事項</span>
+          <span language="es">Notas</span>
+          <span language="ru">Примечания</span>
+          <span language="de">Hinweise</span>
+        </template>
+      </h2>
+      <ul>
+        <li>
+          <template type="language-group">
+            <span language="en">Only files are downloaded. Metadata such as comments and sensitive flags is not saved.</span>
+            <span language="ja">保存するのはファイル本体だけです。コメントやセンシティブ指定などのメタデータは保存しません。</span>
+            <span language="zh-CN">仅下载文件本身，不保存注释、敏感标记等元数据。</span>
+            <span language="zh-TW">僅下載檔案本身，不儲存註解、敏感標記等中繼資料。</span>
+            <span language="es">Solo se descargan los archivos. No se guardan metadatos como comentarios o marcas de contenido sensible.</span>
+            <span language="ru">Скачиваются только сами файлы. Метаданные, например комментарии и отметки о деликатном содержимом, не сохраняются.</span>
+            <span language="de">Es werden nur die Dateien heruntergeladen. Metadaten wie Kommentare oder Markierungen als sensibel werden nicht gespeichert.</span>
+          </template>
+        </li>
+        <li>
+          <template type="language-group">
+            <span language="en">A file that already exists locally is never re-downloaded, even if it has changed on the server.</span>
+            <span language="ja">ローカルにすでにあるファイルは、サーバー側で変更されていても再ダウンロードしません。</span>
+            <span language="zh-CN">本地已存在的文件不会重新下载，即使服务器上的文件已更改。</span>
+            <span language="zh-TW">本機已存在的檔案不會重新下載，即使伺服器上的檔案已變更。</span>
+            <span language="es">Un archivo que ya existe localmente nunca se vuelve a descargar, aunque haya cambiado en el servidor.</span>
+            <span language="ru">Файл, который уже есть локально, не скачивается повторно, даже если он изменился на сервере.</span>
+            <span language="de">Eine lokal bereits vorhandene Datei wird nie erneut heruntergeladen, auch wenn sie sich auf dem Server geändert hat.</span>
+          </template>
+        </li>
+        <li>
+          <template type="language-group">
+            <span language="en">The exit code is <code>1</code> if any file failed, and <code>0</code> otherwise.</span>
+            <span language="ja">1 件でも失敗すると終了コードは <code>1</code>、それ以外は <code>0</code> です。</span>
+            <span language="zh-CN">只要有文件下载失败，退出码即为 <code>1</code>，否则为 <code>0</code>。</span>
+            <span language="zh-TW">只要有檔案下載失敗，結束代碼即為 <code>1</code>，否則為 <code>0</code>。</span>
+            <span language="es">El código de salida es <code>1</code> si falla algún archivo y <code>0</code> en caso contrario.</span>
+            <span language="ru">Код завершения — <code>1</code>, если хотя бы один файл не удалось скачать, и <code>0</code> в остальных случаях.</span>
+            <span language="de">Der Exit-Code ist <code>1</code>, wenn eine Datei fehlschlägt, andernfalls <code>0</code>.</span>
+          </template>
+        </li>
+      </ul>
+    </section>
+
+    <section id="tech-stack">
+      <h2>
+        <template type="language-group">
+          <span language="en">Built with</span>
+          <span language="ja">利用技術</span>
+          <span language="zh-CN">使用的技术</span>
+          <span language="zh-TW">使用的技術</span>
+          <span language="es">Tecnologías utilizadas</span>
+          <span language="ru">Используемые технологии</span>
+          <span language="de">Verwendete Technologien</span>
+        </template>
+      </h2>
+      <div class="tech-groups">
+        <div class="tech-group tech-runtime">
+          <h3>
+            <template type="language-group">
+              <span language="en">Runtime</span>
+              <span language="ja">実行環境</span>
+              <span language="zh-CN">运行环境</span>
+              <span language="zh-TW">執行環境</span>
+              <span language="es">Ejecución</span>
+              <span language="ru">Среда выполнения</span>
+              <span language="de">Laufzeit</span>
+            </template>
+          </h3>
+          <ul class="tech-list">
+            <li><a href="https://www.python.org/">Python 3.8+</a></li>
+            <li><a href="https://docs.python.org/3/library/urllib.request.html">urllib</a></li>
+            <li><a href="https://github.com/mei23/misskey-v11">Misskey API (meiV11)</a></li>
+          </ul>
+        </div>
+        <div class="tech-group tech-dev">
+          <h3>
+            <template type="language-group">
+              <span language="en">Development</span>
+              <span language="ja">開発</span>
+              <span language="zh-CN">开发</span>
+              <span language="zh-TW">開發</span>
+              <span language="es">Desarrollo</span>
+              <span language="ru">Разработка</span>
+              <span language="de">Entwicklung</span>
+            </template>
+          </h3>
+          <ul class="tech-list">
+            <li><a href="https://docs.astral.sh/uv/">uv</a></li>
+            <li><a href="https://docs.pytest.org/">pytest</a></li>
+            <li><a href="https://docs.astral.sh/ruff/">Ruff</a></li>
+          </ul>
+        </div>
+        <div class="tech-group tech-ci">
+          <h3>
+            <template type="language-group">
+              <span language="en">CI &amp; security</span>
+              <span language="ja">CI・セキュリティー</span>
+              <span language="zh-CN">CI 与安全</span>
+              <span language="zh-TW">CI 與安全</span>
+              <span language="es">CI y seguridad</span>
+              <span language="ru">CI и безопасность</span>
+              <span language="de">CI &amp; Sicherheit</span>
+            </template>
+          </h3>
+          <ul class="tech-list">
+            <li><a href="https://github.com/features/actions">GitHub Actions</a></li>
+            <li><a href="https://docs.github.com/code-security/dependabot">Dependabot</a></li>
+            <li><a href="https://docs.astral.sh/uv/reference/cli/#uv-audit">uv audit</a></li>
+            <li><a href="https://github.com/suzuki-shunsuke/pinact">pinact</a></li>
+          </ul>
+        </div>
+        <div class="tech-group tech-web">
+          <h3>
+            <template type="language-group">
+              <span language="en">Website</span>
+              <span language="ja">Web サイト</span>
+              <span language="zh-CN">网站</span>
+              <span language="zh-TW">網站</span>
+              <span language="es">Sitio web</span>
+              <span language="ru">Сайт</span>
+              <span language="de">Website</span>
+            </template>
+          </h3>
+          <ul class="tech-list">
+            <li><a href="https://picocss.com/">Pico CSS</a></li>
+            <li><a href="https://www.npmjs.com/package/multilanguagejs">MultilanguageJS</a></li>
+            <li><a href="https://github.com/jdecked/twemoji">Twemoji</a></li>
+            <li><a href="https://pages.github.com/">GitHub Pages</a></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="container">
+    <hr>
+    <p>
+      <a href="https://github.com/hidao80/meiv11-drive-downloader">GitHub</a> ·
+      <template type="language-group">
+        <span language="en">Emoji graphics by <a href="https://github.com/jdecked/twemoji">Twemoji</a> (CC-BY 4.0)</span>
+        <span language="ja">絵文字画像: <a href="https://github.com/jdecked/twemoji">Twemoji</a>（CC-BY 4.0）</span>
+        <span language="zh-CN">表情图形来自 <a href="https://github.com/jdecked/twemoji">Twemoji</a>（CC-BY 4.0）</span>
+        <span language="zh-TW">表情符號圖形來自 <a href="https://github.com/jdecked/twemoji">Twemoji</a>（CC-BY 4.0）</span>
+        <span language="es">Gráficos de emoji de <a href="https://github.com/jdecked/twemoji">Twemoji</a> (CC-BY 4.0)</span>
+        <span language="ru">Графика эмодзи: <a href="https://github.com/jdecked/twemoji">Twemoji</a> (CC-BY 4.0)</span>
+        <span language="de">Emoji-Grafiken von <a href="https://github.com/jdecked/twemoji">Twemoji</a> (CC-BY 4.0)</span>
+      </template>
+    </p>
+  </footer>
+
+  <script src="https://unpkg.com/multilanguagejs@2.0.1/dist/multilanguagejs.umd.cjs"></script>
+  <script src="main.js"></script>
+</body>
+</html>
